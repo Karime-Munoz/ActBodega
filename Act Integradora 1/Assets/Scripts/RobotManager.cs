@@ -29,6 +29,9 @@ public class RobotManager : MonoBehaviour
     //string url1 = "http://127.0.0.1:5000/setup"; //recivir saludo de server python
     //string url2 = "http://127.0.0.1:5000/receive"; //los datos que vamos a enviar de unity a python 
 
+    public BoxesAppear boxesManager; 
+
+
     string serverURL = "http://127.0.0.1:5000";
 
     public List<GameObject> robots;
@@ -52,8 +55,8 @@ public class RobotManager : MonoBehaviour
 
         }
 
-        StartCoroutine(SendRobotPositons());
-        StartCoroutine(FetchNewPosition());
+        StartCoroutine(SendRobotAndBoxPositions());
+        //StartCoroutine(FetchNewPosition());
         //MoveRobot(1, Roboto1Pos);
 
 
@@ -113,18 +116,34 @@ public class RobotManager : MonoBehaviour
         }
     }
 
-    IEnumerator SendRobotPositons()
+    IEnumerator SendRobotAndBoxPositions()
     {
         var positions = new List<Dictionary<string, object>>();
 
+        
         foreach (var entry in robotPositions)
         {
             positions.Add(new Dictionary<string, object>
-            {
-                {"index",entry.Key },
-                {"position", new float[] {entry.Value.x, entry.Value.y, entry.Value.z } }
-            });
+        {
+            {"type", "robot"},
+            {"id", entry.Key},
+            {"position", new float[] {entry.Value.x, entry.Value.y, entry.Value.z}}
+        });
         }
+
+        
+        foreach (GameObject box in boxesManager.spawnedBoxes)
+        {
+            Vector3 pos = box.transform.position;
+            positions.Add(new Dictionary<string, object>
+        {
+            {"type", "box"},
+            {"id", box.GetInstanceID()}, // Usa el ID único del objeto para identificarlo
+            {"position", new float[] {pos.x, pos.y, pos.z}}
+        });
+        }
+
+        // Serializar a JSON
         string json = JsonConvert.SerializeObject(new Wrapper<List<Dictionary<string, object>>>() { data = positions });
         Debug.Log(json);
 
@@ -139,14 +158,14 @@ public class RobotManager : MonoBehaviour
 
         if (webRequest.result == UnityWebRequest.Result.ConnectionError)
         {
-            Debug.Log("Error: " + webRequest.error);
+            Debug.LogError("Error: " + webRequest.error);
         }
         else
         {
-            Debug.Log("Success! Data send" + webRequest.downloadHandler.text);
+            Debug.Log("Success! Data sent: " + webRequest.downloadHandler.text);
         }
-
     }
+
 
 
     public void MoveRobot(int index, Vector3 newPosition)

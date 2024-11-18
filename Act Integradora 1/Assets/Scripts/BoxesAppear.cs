@@ -18,6 +18,8 @@ public class BoxesAppear : MonoBehaviour
     {
         
     }
+
+    public List<GameObject> spawnedBoxes = new List<GameObject>();
     public void CreateBoxes()
     {
         for (int i = 0; i < 15; i++) 
@@ -26,6 +28,8 @@ public class BoxesAppear : MonoBehaviour
             randomZ= Random.Range(-10, 10);
             GameObject a = Instantiate(prefabBox) as GameObject;
             a.transform.position = new Vector3(randomX, 0f, randomZ);
+
+            spawnedBoxes.Add(a);
         }
     }
 }
