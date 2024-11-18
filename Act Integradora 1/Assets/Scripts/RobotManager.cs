@@ -7,8 +7,6 @@ using Newtonsoft.Json;
 using System.Xml;
 using Unity.VisualScripting;
 
-
-
 [System.Serializable]
 public class RobotInstruction
 {
@@ -16,33 +14,29 @@ public class RobotInstruction
     public float[] position;
     public bool avoid;
 }
+
 [System.Serializable]
 public class Wrapper<T>
 {
     public T data;
 }
 
-
 public class RobotManager : MonoBehaviour
 {
-
-    //string url1 = "http://127.0.0.1:5000/setup"; //recivir saludo de server python
-    //string url2 = "http://127.0.0.1:5000/receive"; //los datos que vamos a enviar de unity a python 
-
-    public BoxesAppear boxesManager; 
-
-
+    public BoxesAppear boxesManager;
     string serverURL = "http://127.0.0.1:5000";
 
     public List<GameObject> robots;
-    private Dictionary<int, Vector3> robotPositions;
+    private Dictionary<int, Vector3> robotPositions = new Dictionary<int, Vector3>(); // Inicialización aquí
 
     public GameObject boxPrefab;
+
 
     //START FUN
     void Start()
     {
         robotPositions = new Dictionary<int, Vector3>();
+        StartCoroutine(InitializeModelOnServer());
 
         for (int i = 0; i < robots.Count; i++)
         {
@@ -55,22 +49,34 @@ public class RobotManager : MonoBehaviour
 
         }
 
-        StartCoroutine(SendRobotAndBoxPositions());
-        //StartCoroutine(FetchNewPosition());
-        //MoveRobot(1, Roboto1Pos);
+        boxesManager.CreateBoxes();
 
-
+        StartCoroutine(SendRobotPositions());
+        StartCoroutine(SendBoxPositions());
     }
 
     //Vector3 Roboto1Pos = new Vector3(-10f, 0.0f, -11f);
 
-
     void Update()
     {
-
         //SendRobotPositons();
+    }
 
+    private IEnumerator InitializeModelOnServer()
+    {
+        UnityWebRequest request = UnityWebRequest.Get($"{serverURL}/initial");
 
+        // Enviar la solicitud
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.ConnectionError || request.result == UnityWebRequest.Result.ProtocolError)
+        {
+            Debug.LogError("Error al inicializar el modelo en el servidor: " + request.error);
+        }
+        else
+        {
+            Debug.Log("Modelo inicializado correctamente en el servidor.");
+        }
     }
 
     IEnumerator FetchNewPosition()
@@ -83,7 +89,6 @@ public class RobotManager : MonoBehaviour
             if (webRequest.result == UnityWebRequest.Result.ConnectionError)
             {
                 Debug.LogError("Error al conectar" + webRequest.error);
-
             }
             else
             {
@@ -116,38 +121,32 @@ public class RobotManager : MonoBehaviour
         }
     }
 
-    IEnumerator SendRobotAndBoxPositions()
+    IEnumerator SendRobotPositions()
     {
-        var positions = new List<Dictionary<string, object>>();
-
-        
-        foreach (var entry in robotPositions)
+        // Asegurarse de que robotPositions no sea null o vacío
+        if (robotPositions == null || robotPositions.Count == 0)
         {
-            positions.Add(new Dictionary<string, object>
-        {
-            {"type", "robot"},
-            {"id", entry.Key},
-            {"position", new float[] {entry.Value.x, entry.Value.y, entry.Value.z}}
-        });
+            Debug.LogError("robotPositions no está inicializado o está vacío.");
+            yield break;
         }
 
-        
-        foreach (GameObject box in boxesManager.spawnedBoxes)
+        var robotData = new List<Dictionary<string, object>>();
+
+        foreach (var entry in robotPositions)
         {
-            Vector3 pos = box.transform.position;
-            positions.Add(new Dictionary<string, object>
-        {
-            {"type", "box"},
-            {"id", box.GetInstanceID()}, // Usa el ID único del objeto para identificarlo
-            {"position", new float[] {pos.x, pos.y, pos.z}}
-        });
+            robotData.Add(new Dictionary<string, object>
+            {
+                {"id", entry.Key},
+                {"position", new float[] {entry.Value.x, entry.Value.y, entry.Value.z}}
+            });
         }
 
         // Serializar a JSON
-        string json = JsonConvert.SerializeObject(new Wrapper<List<Dictionary<string, object>>>() { data = positions });
-        Debug.Log(json);
+        string json = JsonConvert.SerializeObject(new Wrapper<List<Dictionary<string, object>>>() { data = robotData });
+        Debug.Log("Robot Data: " + json);
 
-        UnityWebRequest webRequest = new UnityWebRequest($"{serverURL}/initial", "POST");
+        // Enviar a la ruta específica
+        UnityWebRequest webRequest = new UnityWebRequest($"{serverURL}/robots", "POST");
         byte[] jsonToSend = new System.Text.UTF8Encoding().GetBytes(json);
 
         webRequest.uploadHandler = new UploadHandlerRaw(jsonToSend);
@@ -158,15 +157,64 @@ public class RobotManager : MonoBehaviour
 
         if (webRequest.result == UnityWebRequest.Result.ConnectionError)
         {
-            Debug.LogError("Error: " + webRequest.error);
+            Debug.LogError("Error enviando datos de robots: " + webRequest.error);
         }
         else
         {
-            Debug.Log("Success! Data sent: " + webRequest.downloadHandler.text);
+            Debug.Log("Datos de robots enviados exitosamente: " + webRequest.downloadHandler.text);
         }
     }
 
+    IEnumerator SendBoxPositions()
+    {
+        if (boxesManager == null)
+        {
+            Debug.LogError("boxesManager no está asignado.");
+            yield break;
+        }
 
+        if (boxesManager.spawnedBoxes == null || boxesManager.spawnedBoxes.Count == 0)
+        {
+            Debug.LogError("spawnedBoxes está vacío o no inicializado.");
+            yield break;
+        }
+
+        Debug.Log($"Cantidad de cajas en spawnedBoxes: {boxesManager.spawnedBoxes.Count}");
+
+        var boxData = new List<Dictionary<string, object>>();
+
+        foreach (GameObject box in boxesManager.spawnedBoxes)
+        {
+            Vector3 pos = box.transform.position;
+            boxData.Add(new Dictionary<string, object>
+            {
+                {"id", box.GetInstanceID()},
+                {"position", new float[] {pos.x, pos.y, pos.z}}
+            });
+        }
+
+        string json = JsonConvert.SerializeObject(boxData);
+        Debug.Log("Box Data: " + json);
+
+        // Enviar a la ruta específica
+        UnityWebRequest webRequest = new UnityWebRequest($"{serverURL}/boxes", "POST");
+        byte[] jsonToSend = new System.Text.UTF8Encoding().GetBytes(json);
+
+        webRequest.uploadHandler = new UploadHandlerRaw(jsonToSend);
+        webRequest.downloadHandler = new DownloadHandlerBuffer();
+        webRequest.SetRequestHeader("Content-Type", "application/json");
+
+        yield return webRequest.SendWebRequest();
+
+        if (webRequest.result == UnityWebRequest.Result.ConnectionError)
+        {
+            Debug.LogError("Error enviando datos de cajas: " + webRequest.error);
+        }
+        else
+        {
+            Debug.Log("Datos de cajas enviados exitosamente: " + webRequest.downloadHandler.text);
+        }
+    }
 
     public void MoveRobot(int index, Vector3 newPosition)
     {
@@ -184,11 +232,7 @@ public class RobotManager : MonoBehaviour
         }
         else
         {
-
             Debug.LogError($"Robot {index} not found");
         }
     }
-
-
-
 }
