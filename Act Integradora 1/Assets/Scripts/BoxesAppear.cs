@@ -20,9 +20,9 @@ public class BoxesAppear : MonoBehaviour
     }
 
     public List<GameObject> spawnedBoxes = new List<GameObject>();
-    public void CreateBoxes()
+    public void CreateBoxes(int n)
     {
-        for (int i = 0; i < 5; i++) 
+        for (int i = 0; i < n; i++) 
         {
             randomX = Random.Range(-10, 10);
             randomZ= Random.Range(-10, 10);
