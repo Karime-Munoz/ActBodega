@@ -22,7 +22,7 @@ public class BoxesAppear : MonoBehaviour
     public List<GameObject> spawnedBoxes = new List<GameObject>();
     public void CreateBoxes()
     {
-        for (int i = 0; i < 15; i++) 
+        for (int i = 0; i < 5; i++) 
         {
             randomX = Random.Range(-10, 10);
             randomZ= Random.Range(-10, 10);
