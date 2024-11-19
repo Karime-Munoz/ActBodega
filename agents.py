@@ -91,11 +91,7 @@ class BoxAgent(ap.Agent):
 class ShelfAgent(ap.Agent):
     def setup(self):
         self.agentType = 2
-        self.position = None
         self.stack = []  
-
-    def set_position(self, position):
-        self.position = position
 
     def add_box(self,box):
         self.stack.append(box)
@@ -121,7 +117,10 @@ class WarehouseModel(ap.Model):
     def setup_shelves(self, shelf_positions):
         for i, shelf in enumerate(self.shelves):
             position = tuple(shelf_positions[i]["position"])
+            position = tuple(int(round(coord)) for coord in position)
+            shelf.set_position(position)  # Make sure position is set here
             self.boxWorld.move_to(shelf, position)
+
 
 
     def step(self):

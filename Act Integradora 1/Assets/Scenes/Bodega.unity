@@ -1786,13 +1786,7 @@ MonoBehaviour:
   - {fileID: 1828270983}
   - {fileID: 1354770745}
   - {fileID: 126811170}
-  shelfPositions:
-  - {fileID: 1073690506}
-  - {fileID: 1331735994}
-  - {fileID: 1828270982}
-  - {fileID: 1354770744}
-  - {fileID: 126811169}
-  - {fileID: 958598258}
+  shelfPositions: []
   boxesManager: {fileID: 958598257}
 --- !u!1001 &488091498
 PrefabInstance:

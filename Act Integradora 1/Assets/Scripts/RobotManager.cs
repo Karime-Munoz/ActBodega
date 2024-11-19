@@ -52,8 +52,8 @@ public class RobotManager : MonoBehaviour
 
     void Update()
     {
-        //StartCoroutine(GetRobotPositions());
-        //StartCoroutine(SendRobotPositions());
+        StartCoroutine(GetRobotPositions());
+        StartCoroutine(SendRobotPositions());
 
     }
 
