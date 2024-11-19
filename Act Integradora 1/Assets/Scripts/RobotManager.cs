@@ -6,22 +6,7 @@ using System.Net;
 using Newtonsoft.Json;
 using System.Xml;
 using Unity.VisualScripting;
-
-[System.Serializable]
-public class RobotInstruction
-{
-    public int id;
-    public float[] position;
-    public bool avoid;
-}
-
-[System.Serializable]
-public class Wrapper<T>
-{
-    public T data;
-}
-
-
+using UnityEditor.PackageManager.Requests;
 
 public class RobotManager : MonoBehaviour
 {
@@ -46,7 +31,7 @@ public class RobotManager : MonoBehaviour
             Vector3 position = robot.transform.position;
 
             robotPositions.Add(index, position);
-            Debug.Log($"Robot {index}: initial pos= {position}");
+            //Debug.Log($"Robot {index}: initial pos= {position}");
 
         }
 
@@ -56,6 +41,7 @@ public class RobotManager : MonoBehaviour
         StartCoroutine(InitializeModelOnServer());
         StartCoroutine(SendRobotPositions());
         StartCoroutine(SendBoxPositions());
+        StartCoroutine(GetRobotPositions());
     }
 
     
@@ -64,6 +50,8 @@ public class RobotManager : MonoBehaviour
     {
 
     }
+
+    /*              -----COROUTINES-----             */
 
     private IEnumerator InitializeModelOnServer()
     {
@@ -82,24 +70,7 @@ public class RobotManager : MonoBehaviour
         }
     }
 
-
-    void ProcessInstruction(RobotInstruction instruction)
-    {
-        if (instruction.avoid)
-        {
-            Debug.Log($"Robot {instruction.id} esquiva un obstaculo");
-        }
-        else
-        {
-            Vector3 targetPosition = new Vector3(
-                instruction.position[0],
-                instruction.position[1],
-                instruction.position[2]
-            );
-            MoveRobot(instruction.id, targetPosition);
-        }
-    }
-
+    
     IEnumerator SendRobotPositions()
     {
         // Asegurarse de que robotPositions no sea null o vacío
@@ -122,7 +93,7 @@ public class RobotManager : MonoBehaviour
 
         // Serializar a JSON
         string json = JsonConvert.SerializeObject(new Wrapper<List<Dictionary<string, object>>>() { data = robotData });
-        Debug.Log("Robot Data: " + json);
+        //Debug.Log("Robot Data: " + json);
 
         // Enviar a la ruta específica
         UnityWebRequest webRequest = new UnityWebRequest($"{serverURL}/robots", "POST");
@@ -144,6 +115,25 @@ public class RobotManager : MonoBehaviour
         }
     }
 
+    IEnumerator GetRobotPositions()
+    {
+        UnityWebRequest webRequest = UnityWebRequest.Get($"{serverURL}/robots");
+        yield return webRequest.SendWebRequest();
+
+        if(webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
+        {
+            Debug.LogError("Error: " + webRequest.error);
+        }
+        else
+        {
+            string jsonResponse = webRequest.downloadHandler.text;
+            Debug.Log("Received JSON: " + jsonResponse);
+
+            RobotData robotsData = JsonUtility.FromJson<RobotData>(jsonResponse);
+            UpdateRobotPositions(robotsData);
+        }
+    }
+
     IEnumerator SendBoxPositions()
     {
         if (boxesManager == null)
@@ -158,7 +148,7 @@ public class RobotManager : MonoBehaviour
             yield break;
         }
 
-        Debug.Log($"Cantidad de cajas en spawnedBoxes: {boxesManager.spawnedBoxes.Count}");
+        //Debug.Log($"Cantidad de cajas en spawnedBoxes: {boxesManager.spawnedBoxes.Count}");
 
         // Crea una lista para las cajas
         var boxList = new List<Dictionary<string, object>>();
@@ -180,7 +170,7 @@ public class RobotManager : MonoBehaviour
         };
 
         string json = JsonConvert.SerializeObject(payload);
-        Debug.Log("Box Data JSON: " + json);
+        //Debug.Log("Box Data JSON: " + json);
 
         // Enviar a la ruta específica
         UnityWebRequest webRequest = new UnityWebRequest($"{serverURL}/boxes", "POST");
@@ -199,6 +189,18 @@ public class RobotManager : MonoBehaviour
         else
         {
             Debug.Log("Datos de cajas enviados exitosamente: " + webRequest.downloadHandler.text);
+        }
+    }
+
+    /*              ------HELPER FUNCTIONS------             */
+
+    void UpdateRobotPositions(RobotData robotsData)
+    {
+        foreach (var robot in robotsData.robots)
+        {
+            Debug.Log($"Robot ID: {robot.id}, Position: {robot.position[0]}, {robot.position[1]}, {robot.position[2]}");
+            Vector3 newPosition = new Vector3(robot.position[0], robot.position[1], robot.position[2]);
+            MoveRobot(robot.id, newPosition);
         }
     }
 
@@ -222,4 +224,33 @@ public class RobotManager : MonoBehaviour
             Debug.LogError($"Robot {index} not found");
         }
     }
+}
+
+
+
+[System.Serializable]
+public class RobotInstruction
+{
+    public int id;
+    public float[] position;
+    public bool avoid;
+}
+
+[System.Serializable]
+public class Wrapper<T>
+{
+    public T data;
+}
+
+[System.Serializable]
+public class RobotData
+{
+    public Robot[] robots;
+}
+
+[System.Serializable]
+public class Robot
+{
+    public int id;
+    public float[] position;
 }
