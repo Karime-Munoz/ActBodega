@@ -41,13 +41,16 @@ public class RobotManager : MonoBehaviour
         StartCoroutine(InitializeModelOnServer());
         StartCoroutine(SendRobotPositions());
         StartCoroutine(SendBoxPositions());
-        StartCoroutine(GetRobotPositions());
+        
+
     }
 
     
 
     void Update()
     {
+        StartCoroutine(GetRobotPositions());
+        StartCoroutine(SendRobotPositions());
 
     }
 
@@ -207,6 +210,9 @@ public class RobotManager : MonoBehaviour
 
     public void MoveRobot(int index, Vector3 newPosition)
     {
+        // Forzar la posición Y a 0
+        newPosition.y = 0;
+
         if (robotPositions.ContainsKey(index))
         {
             robotPositions[index] = newPosition;
@@ -224,6 +230,7 @@ public class RobotManager : MonoBehaviour
             Debug.LogError($"Robot {index} not found");
         }
     }
+
 }
 
 

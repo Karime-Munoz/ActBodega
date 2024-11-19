@@ -37,15 +37,19 @@ class RobotAgent(ap.Agent):
         if self.target:
             next_position = self.model.boxWorld.get_path(self, self.target)
             if next_position:
-                self.model.boxWorld.move_to(self, next_position)
+                # Asegúrate de que la posición Y permanezca fija
+                fixed_position = (next_position[0], 0, next_position[2])  # Y = 0
+                self.model.boxWorld.move_to(self, fixed_position)
                 self.movements += 1
 
+        # Lógica de carga y descarga
         if self.model.boxWorld.positions[self] == self.model.boxWorld.positions[self.target]:
             if not self.is_carrying:
                 self.is_carrying = True  # Recoger caja
             else:
                 self.is_carrying = False  # Dejar caja
                 self.target = None
+
 
 
 # BOX AGENT
