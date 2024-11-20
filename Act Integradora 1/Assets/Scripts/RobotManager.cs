@@ -17,6 +17,7 @@ public class RobotManager : MonoBehaviour
 
     public List<GameObject> robots;
     public List<GameObject> shelves;
+    public List<GameObject> NotUsedShelves;
     public List<Transform> shelfPositions; 
     private Dictionary<int, Vector3> robotPositions = new Dictionary<int, Vector3>(); // Inicialización aquí
 
@@ -68,6 +69,7 @@ public class RobotManager : MonoBehaviour
         yield return StartCoroutine(SendRobotPositions());
         yield return StartCoroutine(SendBoxPositions());
         yield return StartCoroutine(SendShelfPositions());
+        yield return StartCoroutine(SendNotUsedShelfPositions());
 
         Debug.Log("Inicialización y envío de datos completados.");
     }
@@ -251,6 +253,59 @@ public class RobotManager : MonoBehaviour
         Debug.Log("JSON generado para estantes: " + json);
 
         UnityWebRequest webRequest = new UnityWebRequest($"{serverURL}/shelves", "POST");
+        byte[] jsonToSend = new System.Text.UTF8Encoding().GetBytes(json);
+
+        webRequest.uploadHandler = new UploadHandlerRaw(jsonToSend);
+        webRequest.downloadHandler = new DownloadHandlerBuffer();
+        webRequest.SetRequestHeader("Content-Type", "application/json");
+
+        yield return webRequest.SendWebRequest();
+
+        if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
+        {
+            Debug.LogError("Error enviando datos de estantes: " + webRequest.error);
+            Debug.LogError("Respuesta del servidor: " + webRequest.downloadHandler.text);
+        }
+        else
+        {
+            Debug.Log("Datos de estantes enviados exitosamente: " + webRequest.downloadHandler.text);
+        }
+    }
+
+    IEnumerator SendNotUsedShelfPositions()
+    {
+        if (NotUsedShelves == null || NotUsedShelves.Count == 0)
+        {
+            Debug.LogError("No se han asignado estantes.");
+            yield break;
+        }
+
+        var shelfList = new List<Dictionary<string, object>>();
+
+        int index = 1;
+        foreach (GameObject shelf in shelves)
+        {
+            Vector3 pos = shelf.transform.position;
+            float x = Mathf.Round(pos.x * 100f) / 100f;
+            float y = 0.0f;
+            float z = Mathf.Round(pos.z * 100f) / 100f;
+
+            shelfList.Add(new Dictionary<string, object>
+        {
+            {"index", index++},
+            {"position", new float[] {x, y, z}}
+        });
+        }
+
+        var payload = new Dictionary<string, object>
+    {
+        {"data", shelfList}
+    };
+
+        string json = JsonConvert.SerializeObject(payload);
+        Debug.Log("JSON generado para estantes: " + json);
+
+        UnityWebRequest webRequest = new UnityWebRequest($"{serverURL}/unused_shelves", "POST");
         byte[] jsonToSend = new System.Text.UTF8Encoding().GetBytes(json);
 
         webRequest.uploadHandler = new UploadHandlerRaw(jsonToSend);

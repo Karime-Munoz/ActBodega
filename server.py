@@ -158,6 +158,34 @@ def handle_shelves():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/unused_shelves", methods=["POST"])
+def handle_unused_shelves():
+    global model
+    try:
+        if request.method == "POST":
+            data = request.get_json()
+            shelf_map = {i + 1: shelf for i, shelf in enumerate(model.unused_shelves)}
+
+            for shelf_data in data.get("data", []):
+                shelf_id = shelf_data.get("index")
+                position = shelf_data.get("position")
+
+                if shelf_id is None or not isinstance(position, list) or len(position) != 3:
+                    return jsonify({"error": f"Invalid shelf data: {shelf_data}"}), 400
+
+                position = tuple(float(coord) for coord in position)
+
+                if shelf_id not in shelf_map:
+                    return jsonify({"error": f"Shelf ID {shelf_id} not found"}), 404
+
+                shelf_agent = shelf_map[shelf_id]
+                model.boxWorld.move_to(shelf_agent, position)
+
+            return jsonify({"message": "Unused shelf positions updated"}), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 
 @app.route("/state", methods=["GET"])

@@ -40,27 +40,26 @@ class RobotAgent(ap.Agent):
                 )
                 self.model.assigned_targets.add(self.target)
         else:
-            available_shelves = [
-                shelf for shelf in shelves 
-                if shelf not in self.model.assigned_targets
-            ]
-            if available_shelves:
-                self.target = min(
-                    available_shelves,
-                    key=lambda shelf: self.model.boxWorld.get_distance(self, shelf)
-                )
+            assigned_shelf = self.model.robot_shelf_map[self]
+            if assigned_shelf not in self.model.assigned_targets:
+                self.target = assigned_shelf
                 self.model.assigned_targets.add(self.target)
-
 
 
     def step(self):
         if self.target:
             next_position = self.model.boxWorld.get_path(self, self.target)
             if next_position:
-                # Asegúrate de que la posición Y permanezca fija
-                fixed_position = (next_position[0], 0, next_position[2])  # Y = 0
-                self.model.boxWorld.move_to(self, fixed_position)
-                self.movements += 1
+                 if not any(
+                self.model.boxWorld.positions[shelf] == next_position 
+                for shelf in self.model.shelves
+            ) and not any(
+                self.model.boxWorld.positions[unused_shelf] == next_position 
+                for unused_shelf in self.model.unused_shelves
+            ):
+                    fixed_position = (next_position[0], 0, next_position[2])  # Y = 0
+                    self.model.boxWorld.move_to(self, fixed_position)
+                    self.movements += 1
 
         # Lógica de carga y descarga
         if self.model.boxWorld.positions[self] == self.model.boxWorld.positions[self.target]:
@@ -96,18 +95,30 @@ class ShelfAgent(ap.Agent):
     def add_box(self,box):
         self.stack.append(box)
         print(f"Caja {box} apilada en estante {self}")
-        
+
+
+
+     
 
 
 
 # WAREHOUSE MODEL
 class WarehouseModel(ap.Model):
+    def __init(self,params):
+        self.shelves = []
+
     def setup(self):
         self.robots = ap.AgentList(self, self.p.robotAgents, RobotAgent)
         self.boxes = ap.AgentList(self, self.p.boxAgents, BoxAgent)
         self.shelves = ap.AgentList(self, self.p.shelfAgents, ShelfAgent)
+        self.unused_shelves = ap.AgentList(self, self.p.unusedShelfAgents, ShelfAgent)
 
         self.assigned_targets = set()
+        self.robot_shelf_map = {}
+
+        for i, robot in enumerate(self.robots):
+            shelf = self.shelves[i % len(self.shelves)]
+            self.robot_shelf_map[robot] = shelf
 
         self.boxWorld = ap.Grid(self, self.p.worldSize, track_empty=True)
         self.boxWorld.add_agents(self.robots, random=True, empty=True)
@@ -121,6 +132,12 @@ class WarehouseModel(ap.Model):
             shelf.set_position(position)  # Make sure position is set here
             self.boxWorld.move_to(shelf, position)
 
+    def setup_unused_shelves(self, unused_shelf_positions):
+        for i, shelf in enumerate(self.unused_shelves):
+            position = tuple(unused_shelf_positions[i]["position"])
+            position = tuple(int(round(coord)) for coord in position)
+            shelf.set_position(position)
+            self.boxWorld.move_to(shelf, position)
 
 
     def step(self):
@@ -153,9 +170,20 @@ class WarehouseModel(ap.Model):
         for pos, agents in position_map.items():
             if len(agents) > 1:
                 self.resolve_collision(agents)
+        
+        # Estantes no usados al mapa
+        for unused_shelf in self.unused_shelves:
+            pos = self.boxWorld.positions[unused_shelf]
+            if pos in position_map:
+                position_map[pos].append(unused_shelf)
+            else:
+                position_map[pos] = [unused_shelf]
 
     def resolve_collision(self, agents):
         for robot in agents:
+            empty_pos = self.find_empty_adjacent(robot)
+            if empty_pos:
+                self.boxWorld.move_to(robot, empty_pos)
             robot.target = None  # Obligarlos a reevaluar su objetivo
 
     def find_empty_adjacent(self, agent):
