@@ -46,6 +46,8 @@ public class RobotManager : MonoBehaviour
         //Inicializar rutas
         
         StartCoroutine(InitializeAndSendData());
+
+
         
 
     }
@@ -114,6 +116,11 @@ public class RobotManager : MonoBehaviour
                 {"id", entry.Key},
                 {"position", new float[] {entry.Value.x, entry.Value.y, entry.Value.z}}
             });
+        }
+
+        foreach (var entry in robotPositions)
+        {
+            Debug.Log($"Unity Robot {entry.Key} Pos: {entry.Value}");
         }
 
         // Serializar a JSON
@@ -363,6 +370,7 @@ public class RobotManager : MonoBehaviour
 
             Vector3 shelfPosition = shelfController.GetNextAvailableSlot();
             GameObject newBox = Instantiate(boxPrefab, shelfPosition, Quaternion.identity);
+            newBox.transform.SetParent(shelf.transform);
             shelfController.AddBoxToShelf(newBox);
 
             Debug.Log($"Caja colocada en el estante en posición {shelfPosition} por el robot {robot.name}");
@@ -386,10 +394,10 @@ public class RobotManager : MonoBehaviour
             if (controller != null)
             {
                 controller.SetTargetPosition(newPosition);
-                Debug.Log($"Robot {index} moving to {newPosition}");
+                //Debug.Log($"Robot {index} moving to {newPosition}");
             }
             PickUpBox(robot);
-            Debug.Log($"Robot {index} moved to {newPosition}");
+            //Debug.Log($"Robot {index} moved to {newPosition}");
         }
         else
         {

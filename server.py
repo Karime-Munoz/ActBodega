@@ -25,6 +25,8 @@ def handle_robots():
     try:
         if request.method == "POST":
             data = request.get_json()
+            print(f"Posiciones recibidas desde Unity: {data}")
+
             for robot_data in data.get("robots", []):
                 index = robot_data.get("index", None)
                 position = robot_data.get("position", [])
@@ -47,7 +49,7 @@ def handle_robots():
                 # Si el robot está cargando una caja, su target es el shelf asignado
                 shelf = model.robot_shelf_map.get(robot)
                 target_position = model.boxWorld.positions[shelf] if shelf else model.boxWorld.positions[robot]
-            elif robot.target and isinstance(robot.target):  
+            elif robot.target:  
                 # Si el robot tiene una caja asignada como target
                 target_position = robot.target.position
             else:  
@@ -59,7 +61,7 @@ def handle_robots():
                 "target": target_position,  # Devuelve solo coordenadas
             })
             
-            print(robots_data)
+            #print(robots_data)
 
         return jsonify({"robots": robots_data}), 200
 
@@ -89,7 +91,15 @@ def handle_boxes():
                 print(f"Invalid position for box {box_id}: {position}")
                 continue
 
+            try:
+                # Convertir posición a enteros
+                position = [int(round(coord)) for coord in position]
+            except ValueError:
+                print(f"Invalid position format for box {box_id}: {position}")
+                continue
+
             print(f"Processing box {box_id} with position {position}")
+
 
             if box_id not in box_map:
                 #print(f"Box ID {box_id} not found in model.boxes")
@@ -104,9 +114,10 @@ def handle_boxes():
                 continue
 
             try:
-                model.boxWorld.move_to(box_agent, tuple(position[:2]))
+                position_tuple = tuple(map(int, position[:2]))
+                model.boxWorld.move_to(box_agent, position_tuple)
             except Exception as e:
-                print(f"Error moving box {box_id} to position {tuple(position[:2])}: {e}")
+                print(f"Error moving box {box_id} to position {position_tuple}: {e}")
                 continue
 
         return jsonify({"message": "Datos de cajas procesados exitosamente"}), 200

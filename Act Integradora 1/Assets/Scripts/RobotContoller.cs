@@ -27,13 +27,13 @@ public class RobotController : MonoBehaviour
     {
         if (newPosition == targetPosition)
         {
-            Debug.Log($"El robot ya está en la posición objetivo {newPosition}");
+            //Debug.Log($"El robot ya está en la posición objetivo {newPosition}");
             return;
         }
         targetPosition = newPosition;
         isMoving = true;
         animator.SetBool("isRunning", true);
-        Debug.Log($"Nuevo objetivo asignado: {newPosition}");
+        //Debug.Log($"Nuevo objetivo asignado: {newPosition}");
     }
     public bool IsMoving()
     {
