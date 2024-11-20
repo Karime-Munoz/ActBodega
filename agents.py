@@ -39,9 +39,12 @@ class RobotAgent(ap.Agent):
                     key=lambda box: self.model.boxWorld.get_distance(self, box)
                 )
                 self.model.assigned_targets.add(self.target)
+            else:
+                self.target = None
+
         else:
-            assigned_shelf = self.model.robot_shelf_map[self]
-            if assigned_shelf not in self.model.assigned_targets:
+             assigned_shelf = self.model.robot_shelf_map[self]
+             if assigned_shelf not in self.model.assigned_targets:
                 self.target = assigned_shelf
                 self.model.assigned_targets.add(self.target)
 
@@ -50,29 +53,32 @@ class RobotAgent(ap.Agent):
         if self.target:
             next_position = self.model.boxWorld.get_path(self, self.target)
             if next_position:
-                 if not any(
+                if not any(
                 self.model.boxWorld.positions[shelf] == next_position 
                 for shelf in self.model.shelves
-            ) and not any(
-                self.model.boxWorld.positions[unused_shelf] == next_position 
-                for unused_shelf in self.model.unused_shelves
             ):
                     fixed_position = (next_position[0], 0, next_position[2])  # Y = 0
                     self.model.boxWorld.move_to(self, fixed_position)
                     self.movements += 1
 
-        # Lógica de carga y descarga
-        if self.model.boxWorld.positions[self] == self.model.boxWorld.positions[self.target]:
-            if isinstance(self.target, BoxAgent) and not self.is_carrying:
-                self.is_carrying = True # Recoger caja
-                self.target.position = None
-                self.model.boxWorld.remove_agent(self.target)   
+            #Lógica de carga y descarga
+            if self.model.boxWorld.positions[self] == self.model.boxWorld.positions[self.target]:
+                if isinstance(self.target, BoxAgent) and not self.is_carrying:
+                    self.is_carrying = True # Recoger caja
+                    self.target.position = None
+                    self.model.boxWorld.remove_agent(self.target)
+                    self.target = None   
             
-            elif isinstance(self.target, ShelfAgent) and self.is_carrying:
-                self.is_carrying = False
-                shelf = self.target
-                shelf.add_box(self.target)  # Apilar caja en el estante
-                self.target = None
+                elif isinstance(self.target, ShelfAgent) and self.is_carrying:
+                    self.is_carrying = False
+                    shelf = self.target
+                    shelf.add_box(self.target)  # Apilar caja en el estante
+                    self.target = None
+
+                    self.plan_path(self.model.boxes, self.model.shelves)
+        else:
+            self.plan_path(self.model.boxes, self.model.shelves)
+
 
 
 
@@ -95,23 +101,16 @@ class ShelfAgent(ap.Agent):
     def add_box(self,box):
         self.stack.append(box)
         print(f"Caja {box} apilada en estante {self}")
-
-
-
-     
+        
 
 
 
 # WAREHOUSE MODEL
 class WarehouseModel(ap.Model):
-    def __init(self,params):
-        self.shelves = []
-
     def setup(self):
         self.robots = ap.AgentList(self, self.p.robotAgents, RobotAgent)
         self.boxes = ap.AgentList(self, self.p.boxAgents, BoxAgent)
         self.shelves = ap.AgentList(self, self.p.shelfAgents, ShelfAgent)
-        self.unused_shelves = ap.AgentList(self, self.p.unusedShelfAgents, ShelfAgent)
 
         self.assigned_targets = set()
         self.robot_shelf_map = {}
@@ -126,18 +125,32 @@ class WarehouseModel(ap.Model):
         self.boxWorld.add_agents(self.shelves, random=True, empty=True)
 
     def setup_shelves(self, shelf_positions):
-        for i, shelf in enumerate(self.shelves):
-            position = tuple(shelf_positions[i]["position"])
-            position = tuple(int(round(coord)) for coord in position)
-            shelf.set_position(position)  # Make sure position is set here
-            self.boxWorld.move_to(shelf, position)
+        for index, shelf in enumerate(self.shelves):
+            try:
+                # Validate shelf_positions[index]
+                if index >= len(shelf_positions):
+                    raise ValueError(f"No position provided for shelf {index + 1}")
+                shelf_data = shelf_positions[index]
 
-    def setup_unused_shelves(self, unused_shelf_positions):
-        for i, shelf in enumerate(self.unused_shelves):
-            position = tuple(unused_shelf_positions[i]["position"])
-            position = tuple(int(round(coord)) for coord in position)
-            shelf.set_position(position)
-            self.boxWorld.move_to(shelf, position)
+                if "position" not in shelf_data or not isinstance(shelf_data["position"], (list, tuple)):
+                    raise ValueError(f"Invalid position data for shelf {index + 1}: {shelf_data}")
+
+                # Extract and convert position
+                position = tuple(int(round(coord)) for coord in shelf_data["position"])
+
+                # Check grid bounds
+                if not self.boxWorld.in_bounds(position):
+                    raise ValueError(f"Position {position} is out of grid bounds for shelf {index + 1}")
+
+                # Move shelf to the specified position
+                self.boxWorld.move_to(shelf, position)
+                print(f"Shelf {index + 1} successfully moved to position {position}")
+
+            except Exception as e:
+                print(f"Error setting position for shelf {index + 1}: {e}")
+
+
+
 
 
     def step(self):
@@ -170,14 +183,6 @@ class WarehouseModel(ap.Model):
         for pos, agents in position_map.items():
             if len(agents) > 1:
                 self.resolve_collision(agents)
-        
-        # Estantes no usados al mapa
-        for unused_shelf in self.unused_shelves:
-            pos = self.boxWorld.positions[unused_shelf]
-            if pos in position_map:
-                position_map[pos].append(unused_shelf)
-            else:
-                position_map[pos] = [unused_shelf]
 
     def resolve_collision(self, agents):
         for robot in agents:

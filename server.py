@@ -6,15 +6,16 @@ app = Flask(__name__)
 params = {
     "robotAgents": 5,
     "boxAgents": 5,  
-    "shelfAgents": 5,
-    "worldSize": (20, 20, 20),
+    "shelfAgents": 6,
+    "worldSize": (18, 20, 20),
 }
 
-model = WarehouseModel(params)
+model = None
 
 @app.route("/initial", methods=["GET"])
 def receive():
     global model
+    model = WarehouseModel(params)
     model.setup()
     return jsonify({"message ": "Modelo inicializado"})
 
@@ -40,11 +41,27 @@ def handle_robots():
             return jsonify({"message": "Robot positions updated"}), 200
 
         elif request.method == "GET":
-            robots_data = [
-                {"id": i + 1, "position": model.boxWorld.positions[robot]}
-                for i, robot in enumerate(model.robots)
-            ]
-            return jsonify({"robots": robots_data}), 200
+            robots_data = []
+        for i, robot in enumerate(model.robots):
+            if robot.is_carrying:  
+                # Si el robot está cargando una caja, su target es el shelf asignado
+                shelf = model.robot_shelf_map.get(robot)
+                target_position = model.boxWorld.positions[shelf] if shelf else model.boxWorld.positions[robot]
+            elif robot.target and isinstance(robot.target):  
+                # Si el robot tiene una caja asignada como target
+                target_position = robot.target.position
+            else:  
+                # Si el robot no tiene target asignado, se queda en su posición actual
+                target_position = model.boxWorld.positions[robot]
+
+            robots_data.append({
+                "id": i + 1,
+                "target": target_position,  # Devuelve solo coordenadas
+            })
+            
+            print(robots_data)
+
+        return jsonify({"robots": robots_data}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -55,7 +72,7 @@ def handle_boxes():
     global model
     try:
         data = request.get_json()
-        print(f"Data received: {data}")
+        #print(f"Data received: {data}")
 
         box_list = data.get("data", [])
         box_map = {box.id: box for box in model.boxes}  # Mapeo de cajas por ID
@@ -106,25 +123,26 @@ def handle_shelves():
             data = request.get_json()
             #print(f"Data received for shelves: {data}")
 
-            # Mapeo de estantes por su índice en el modelo
+            # Map shelves by their index in the model
             shelf_map = {i + 1: shelf for i, shelf in enumerate(model.shelves)}
 
             for shelf_data in data.get("data", []):
-                shelf_id = shelf_data.get("index")  # ID de estante enviado desde Unity
+                shelf_id = shelf_data.get("index")  # Shelf ID from Unity
                 position = shelf_data.get("position")
 
-                # Validar datos de entrada
+                # Validate input data
                 if shelf_id is None or not isinstance(position, list) or len(position) != 3:
                     print(f"Invalid shelf data: {shelf_data}")
                     continue
 
                 try:
-                    position = tuple(float(coord) for coord in position)
+                    # Convert position to integers
+                    position = tuple(int(round(coord)) for coord in position)
                 except ValueError:
                     print(f"Invalid position format for shelf {shelf_id}: {position}")
                     continue
 
-                # Verificar si el ID de estante es válido
+                # Check if the shelf ID is valid
                 if shelf_id not in shelf_map:
                     print(f"Shelf ID {shelf_id} not found in model.shelves")
                     continue
@@ -141,7 +159,7 @@ def handle_shelves():
             return jsonify({"message": "Shelf positions updated successfully"}), 200
 
         elif request.method == "GET":
-            # Generar datos de salida para los estantes
+            # Generate output data for the shelves
             shelves_data = [
                 {
                     "id": i + 1,
@@ -158,43 +176,7 @@ def handle_shelves():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/unused_shelves", methods=["POST"])
-def handle_unused_shelves():
-    global model
-    try:
-        if request.method == "POST":
-            data = request.get_json()
-            shelf_map = {i + 1: shelf for i, shelf in enumerate(model.unused_shelves)}
 
-            for shelf_data in data.get("data", []):
-                shelf_id = shelf_data.get("index")
-                position = shelf_data.get("position")
-
-                if shelf_id is None or not isinstance(position, list) or len(position) != 3:
-                    return jsonify({"error": f"Invalid shelf data: {shelf_data}"}), 400
-
-                position = tuple(float(coord) for coord in position)
-
-                if shelf_id not in shelf_map:
-                    return jsonify({"error": f"Shelf ID {shelf_id} not found"}), 404
-
-                shelf_agent = shelf_map[shelf_id]
-                model.boxWorld.move_to(shelf_agent, position)
-
-            return jsonify({"message": "Unused shelf positions updated"}), 200
-        
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-
-@app.route("/state", methods=["GET"])
-def get_state():
-    global model
-    try:
-        return jsonify(model.positions), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 
 

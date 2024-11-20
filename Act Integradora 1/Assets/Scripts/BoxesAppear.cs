@@ -24,8 +24,8 @@ public class BoxesAppear : MonoBehaviour
     {
         for (int i = 0; i < n; i++) 
         {
-            randomX = Random.Range(-10, 10);
-            randomZ= Random.Range(-10, 10);
+            randomX = Random.Range(-10, 15);
+            randomZ= Random.Range(-15, 5);
             GameObject a = Instantiate(prefabBox) as GameObject;
             a.transform.position = new Vector3(randomX, 0f, randomZ);
 

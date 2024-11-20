@@ -1,33 +1,34 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting.Antlr3.Runtime.Misc;
 using UnityEngine;
 
 public class ShelfController : MonoBehaviour
 {
     public List<Transform> boxSlots; // Posiciones para las cajas
-    private List<bool> slotOccupied;
-
-    void Start()
-    {
-        slotOccupied = new List<bool>(new bool[boxSlots.Count]);
-    }
+    private List<GameObject> occupiedSlots = new List<GameObject>();
 
     public bool HasAvailableSlot()
     {
-        return slotOccupied.Contains(false);
+        return occupiedSlots.Count < boxSlots.Count;
     }
 
     public Vector3 GetNextAvailableSlot()
     {
-        for (int i = 0; i < slotOccupied.Count; i++)
+        foreach (Transform slot in boxSlots)
         {
-            if (!slotOccupied[i])
+            if (!occupiedSlots.Exists(box => box.transform.position == slot.position))
             {
-                slotOccupied[i] = true;
-                return boxSlots[i].position;
+                return slot.position;
             }
         }
-        return Vector3.zero; // Retorna un valor por defecto si no hay slots disponibles
+        return Vector3.zero; // Si no hay slots disponibles
+    }
+
+    public void AddBoxToShelf(GameObject box)
+    {
+        if (!HasAvailableSlot()) return;
+        occupiedSlots.Add(box);
     }
 }
 

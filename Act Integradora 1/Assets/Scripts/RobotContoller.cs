@@ -8,13 +8,13 @@ public class RobotController : MonoBehaviour
     public float speed = 2.0f;
     private Vector3 targetPosition;
     private bool isMoving = false;
-    // Start is called before the first frame update
+
     void Start()
     {
         targetPosition = transform.position;
     }
 
-    // Update is called once per frame
+
     void Update()
     {
         if (isMoving)
@@ -25,10 +25,21 @@ public class RobotController : MonoBehaviour
 
     public void SetTargetPosition(Vector3 newPosition)
     {
+        if (newPosition == targetPosition)
+        {
+            Debug.Log($"El robot ya está en la posición objetivo {newPosition}");
+            return;
+        }
         targetPosition = newPosition;
         isMoving = true;
         animator.SetBool("isRunning", true);
+        Debug.Log($"Nuevo objetivo asignado: {newPosition}");
     }
+    public bool IsMoving()
+    {
+        return isMoving;
+    }
+
     private void MoveTowardsTarget()
     {
         float step = speed * Time.deltaTime;

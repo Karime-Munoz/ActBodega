@@ -393,6 +393,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Shelf Variation 02
       objectReference: {fileID: 0}
+    - target: {fileID: 1151952502364127329, guid: 5c1b535d3782bee49819656f221e56de, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4154526033587974770, guid: 5c1b535d3782bee49819656f221e56de, type: 3}
       propertyPath: m_LocalPosition.x
       value: -6.67
@@ -441,11 +445,6 @@ PrefabInstance:
 --- !u!4 &126811169 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4154526033587974770, guid: 5c1b535d3782bee49819656f221e56de, type: 3}
-  m_PrefabInstance: {fileID: 126811168}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &126811170 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1151952502364127329, guid: 5c1b535d3782bee49819656f221e56de, type: 3}
   m_PrefabInstance: {fileID: 126811168}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &183373132
@@ -1787,10 +1786,6 @@ MonoBehaviour:
   - {fileID: 935460020}
   - {fileID: 875521084}
   - {fileID: 612404281}
-  NotUsedShelves:
-  - {fileID: 1017178648}
-  - {fileID: 126811170}
-  - {fileID: 1331735995}
   shelfPositions: []
   boxesManager: {fileID: 958598257}
 --- !u!1001 &488091498
@@ -1871,7 +1866,7 @@ GameObject:
   - component: {fileID: 503652151}
   - component: {fileID: 503652150}
   m_Layer: 0
-  m_Name: Camera (1)
+  m_Name: Camera (disp8)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1885,13 +1880,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 503652148}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.13776436, y: 0.59951293, z: -0.10571029, w: 0.7813006}
-  m_LocalPosition: {x: 0.452, y: 0.132, z: -0.019}
+  m_LocalRotation: {x: 0.15965857, y: 0.3872654, z: -0.068285316, w: 0.90546775}
+  m_LocalPosition: {x: 0.45199966, y: 0.13199997, z: 0.043}
   m_LocalScale: {x: 0.33333334, y: 0.33333334, z: 0.3333334}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 942513482}
-  m_LocalEulerAnglesHint: {x: 20, y: 75, z: 0}
+  m_LocalEulerAnglesHint: {x: 20, y: 46.312, z: 0}
 --- !u!81 &503652150
 AudioListener:
   m_ObjectHideFlags: 0
@@ -3282,10 +3277,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1273449371}
     m_Modifications:
-    - target: {fileID: 3890724876269794053, guid: ce7e4bd04c6404147b4b1dc694ac9a00, type: 3}
-      propertyPath: m_Name
-      value: Shelf Variation 05
-      objectReference: {fileID: 0}
     - target: {fileID: 262889321097380118, guid: ce7e4bd04c6404147b4b1dc694ac9a00, type: 3}
       propertyPath: m_LocalPosition.x
       value: 17.83
@@ -3324,6 +3315,14 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 262889321097380118, guid: ce7e4bd04c6404147b4b1dc694ac9a00, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3890724876269794053, guid: ce7e4bd04c6404147b4b1dc694ac9a00, type: 3}
+      propertyPath: m_Name
+      value: Shelf Variation 05
+      objectReference: {fileID: 0}
+    - target: {fileID: 3890724876269794053, guid: ce7e4bd04c6404147b4b1dc694ac9a00, type: 3}
+      propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
@@ -5078,11 +5077,6 @@ Transform:
   - {fileID: 1232319800}
   m_Father: {fileID: 1856452817}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1017178648 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 3890724876269794053, guid: ce7e4bd04c6404147b4b1dc694ac9a00, type: 3}
-  m_PrefabInstance: {fileID: 726523800}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1048465808
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7292,10 +7286,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1273449371}
     m_Modifications:
-    - target: {fileID: 3922192954965300429, guid: 78f2873840cccd046adee8782efa45fb, type: 3}
-      propertyPath: m_Name
-      value: Shelf Variation 03
-      objectReference: {fileID: 0}
     - target: {fileID: 14975824351061726, guid: 78f2873840cccd046adee8782efa45fb, type: 3}
       propertyPath: m_LocalPosition.x
       value: 4.61
@@ -7336,6 +7326,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3922192954965300429, guid: 78f2873840cccd046adee8782efa45fb, type: 3}
+      propertyPath: m_Name
+      value: Shelf Variation 03
+      objectReference: {fileID: 0}
+    - target: {fileID: 3922192954965300429, guid: 78f2873840cccd046adee8782efa45fb, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -7344,11 +7342,6 @@ PrefabInstance:
 --- !u!4 &1331735994 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 14975824351061726, guid: 78f2873840cccd046adee8782efa45fb, type: 3}
-  m_PrefabInstance: {fileID: 1331735993}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &1331735995 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 3922192954965300429, guid: 78f2873840cccd046adee8782efa45fb, type: 3}
   m_PrefabInstance: {fileID: 1331735993}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1333757807
@@ -7752,6 +7745,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1273449371}
     m_Modifications:
+    - target: {fileID: 6225358861170117921, guid: f27fcf47b279da042ae6ff22c72d9949, type: 3}
+      propertyPath: m_Name
+      value: Shelves Empty
+      objectReference: {fileID: 0}
     - target: {fileID: 6935459031938432818, guid: f27fcf47b279da042ae6ff22c72d9949, type: 3}
       propertyPath: m_LocalPosition.x
       value: -6.67
@@ -7791,10 +7788,6 @@ PrefabInstance:
     - target: {fileID: 6935459031938432818, guid: f27fcf47b279da042ae6ff22c72d9949, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6225358861170117921, guid: f27fcf47b279da042ae6ff22c72d9949, type: 3}
-      propertyPath: m_Name
-      value: Shelves Empty
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -10544,7 +10537,7 @@ GameObject:
   - component: {fileID: 1828392410}
   - component: {fileID: 1828392409}
   m_Layer: 0
-  m_Name: Camera
+  m_Name: Camera(disp7)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

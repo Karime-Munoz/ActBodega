@@ -17,11 +17,12 @@ public class RobotManager : MonoBehaviour
 
     public List<GameObject> robots;
     public List<GameObject> shelves;
-    public List<GameObject> NotUsedShelves;
     public List<Transform> shelfPositions; 
     private Dictionary<int, Vector3> robotPositions = new Dictionary<int, Vector3>(); // Inicialización aquí
 
     public BoxesAppear boxesManager;
+
+    private bool isUpdatingPositions = false;
 
     //START FUN
     void Start()
@@ -49,12 +50,16 @@ public class RobotManager : MonoBehaviour
 
     }
 
-
+    private float updateInterval = 1f; // Intervalo en segundos
+    private float lastUpdate = 0;
 
     void Update()
     {
-        StartCoroutine(GetRobotPositions());
-        StartCoroutine(SendRobotPositions());
+        if (Time.time - lastUpdate >= updateInterval && !isUpdatingPositions)
+        {
+            StartCoroutine(UpdateRobotPositions());
+            lastUpdate = Time.time;
+        }
 
     }
 
@@ -69,7 +74,6 @@ public class RobotManager : MonoBehaviour
         yield return StartCoroutine(SendRobotPositions());
         yield return StartCoroutine(SendBoxPositions());
         yield return StartCoroutine(SendShelfPositions());
-        yield return StartCoroutine(SendNotUsedShelfPositions());
 
         Debug.Log("Inicialización y envío de datos completados.");
     }
@@ -144,6 +148,7 @@ public class RobotManager : MonoBehaviour
         if(webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
         {
             Debug.LogError("Error: " + webRequest.error);
+            Debug.LogError("Respuesta del servidor: " + webRequest.downloadHandler.text);
         }
         else
         {
@@ -151,7 +156,7 @@ public class RobotManager : MonoBehaviour
             Debug.Log("Received JSON: " + jsonResponse);
 
             RobotData robotsData = JsonUtility.FromJson<RobotData>(jsonResponse);
-            UpdateRobotPositions(robotsData);
+            UpRobotPositions(robotsData);
         }
     }
 
@@ -272,67 +277,61 @@ public class RobotManager : MonoBehaviour
         }
     }
 
-    IEnumerator SendNotUsedShelfPositions()
+    IEnumerator UpdateRobotPositions()
     {
-        if (NotUsedShelves == null || NotUsedShelves.Count == 0)
+        isUpdatingPositions = true;
+
+        // Llamada a la API para obtener las nuevas posiciones de los robots
+        yield return StartCoroutine(GetRobotPositions());
+
+        // Procesar datos y asignar nuevas posiciones
+        foreach (KeyValuePair<int, Vector3> entry in robotPositions)
         {
-            Debug.LogError("No se han asignado estantes.");
-            yield break;
+            int robotIndex = entry.Key;
+            Vector3 targetPos = entry.Value;
+
+            if (entry.Key - 1 >= robots.Count)
+            {
+                Debug.LogError($"El índice {robotIndex} no corresponde a ningún robot en la lista.");
+                continue;
+            }
+
+            GameObject robot = robots[robotIndex - 1];
+            RobotController controller = robot.GetComponent<RobotController>();
+
+            if (controller != null && !controller.IsMoving())
+            {
+                // Cuando el robot llega al objetivo, asignar nueva posición
+                controller.SetTargetPosition(targetPos);
+                Debug.Log($"Robot {robotIndex} assigned new target: {targetPos}");
+            }
         }
 
-        var shelfList = new List<Dictionary<string, object>>();
-
-        int index = 1;
-        foreach (GameObject shelf in shelves)
-        {
-            Vector3 pos = shelf.transform.position;
-            float x = Mathf.Round(pos.x * 100f) / 100f;
-            float y = 0.0f;
-            float z = Mathf.Round(pos.z * 100f) / 100f;
-
-            shelfList.Add(new Dictionary<string, object>
-        {
-            {"index", index++},
-            {"position", new float[] {x, y, z}}
-        });
-        }
-
-        var payload = new Dictionary<string, object>
-    {
-        {"data", shelfList}
-    };
-
-        string json = JsonConvert.SerializeObject(payload);
-        Debug.Log("JSON generado para estantes: " + json);
-
-        UnityWebRequest webRequest = new UnityWebRequest($"{serverURL}/unused_shelves", "POST");
-        byte[] jsonToSend = new System.Text.UTF8Encoding().GetBytes(json);
-
-        webRequest.uploadHandler = new UploadHandlerRaw(jsonToSend);
-        webRequest.downloadHandler = new DownloadHandlerBuffer();
-        webRequest.SetRequestHeader("Content-Type", "application/json");
-
-        yield return webRequest.SendWebRequest();
-
-        if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
-        {
-            Debug.LogError("Error enviando datos de estantes: " + webRequest.error);
-            Debug.LogError("Respuesta del servidor: " + webRequest.downloadHandler.text);
-        }
-        else
-        {
-            Debug.Log("Datos de estantes enviados exitosamente: " + webRequest.downloadHandler.text);
-        }
+        isUpdatingPositions = false;
     }
+
+
+
 
     /*              ------HELPER FUNCTIONS------             */
 
-    void UpdateRobotPositions(RobotData robotsData)
+    void UpRobotPositions(RobotData robotsData)
     {
+        if (robotsData == null || robotsData.robots.Length == 0)
+        {
+            Debug.LogWarning("No se recibieron datos de robots.");
+            return;
+        }
+
         foreach (var robot in robotsData.robots)
         {
-            //Debug.Log($"Robot ID: {robot.id}, Position: {robot.position[0]}, {robot.position[1]}, {robot.position[2]}");
-            Vector3 newPosition = new Vector3(robot.position[0], robot.position[1], robot.position[2]);
+            if (robot.target.Length != 3)
+            {
+                Debug.LogWarning($"El robot {robot.id} tiene datos incompletos.");
+                continue;
+            }
+
+            Vector3 newPosition = new Vector3(robot.target[0], robot.target[1], robot.target[2]);
             MoveRobot(robot.id, newPosition);
         }
     }
@@ -364,6 +363,7 @@ public class RobotManager : MonoBehaviour
 
             Vector3 shelfPosition = shelfController.GetNextAvailableSlot();
             GameObject newBox = Instantiate(boxPrefab, shelfPosition, Quaternion.identity);
+            shelfController.AddBoxToShelf(newBox);
 
             Debug.Log($"Caja colocada en el estante en posición {shelfPosition} por el robot {robot.name}");
             return;
@@ -375,18 +375,18 @@ public class RobotManager : MonoBehaviour
 
     public void MoveRobot(int index, Vector3 newPosition)
     {
-        // Forzar la posición Y a 0
         newPosition.y = 0;
-
         if (robotPositions.ContainsKey(index))
         {
             robotPositions[index] = newPosition;
 
             GameObject robot = robots[index - 1];
             RobotController controller = robot.GetComponent<RobotController>();
+
             if (controller != null)
             {
                 controller.SetTargetPosition(newPosition);
+                Debug.Log($"Robot {index} moving to {newPosition}");
             }
             PickUpBox(robot);
             Debug.Log($"Robot {index} moved to {newPosition}");
@@ -396,6 +396,7 @@ public class RobotManager : MonoBehaviour
             Debug.LogError($"Robot {index} not found");
         }
     }
+
 
 }
 
@@ -416,5 +417,5 @@ public class RobotData
 public class Robot
 {
     public int id;
-    public float[] position;
+    public float[] target;
 }
